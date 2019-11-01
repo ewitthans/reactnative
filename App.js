@@ -1,62 +1,114 @@
-import { AppLoading } from 'expo';
-import { Asset } from 'expo-asset';
-import * as Font from 'expo-font';
-import React, { useState } from 'react';
-import { Platform, StatusBar, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, {Component} from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  Dimensions,
+  TouchableOpacity,
+  Alert,
+  ScrollView
+} from 'react-native';
 
-import AppNavigator from './navigation/AppNavigator';
+const screenWidth = Dimensions.get('window').width;
 
-export default function App(props) {
-  const [isLoadingComplete, setLoadingComplete] = useState(false);
+export default class App extends Component {
+  state = {
+    username: '',
+    repos: [],
+  }
 
-  if (!isLoadingComplete && !props.skipLoadingScreen) {
+  _handleChange = (evt) => {
+    this.setState({
+      username: evt.nativeEvent.text
+    });
+  }
+
+  _getUserRepos = (username) => {
+    username = username.toLowerCase().trim();
+    const url = `https://api.github.com/users/${username}/repos`;
+    return fetch(url).then((res) => res.json());
+  }
+
+  _handleSubmit = () => {
+    this._getUserRepos(this.state.username)
+      .then((res) => {
+        this.setState({repos: res});
+      });
+  }
+
+  _renderRepos = () => {
     return (
-      <AppLoading
-        startAsync={loadResourcesAsync}
-        onError={handleLoadingError}
-        onFinish={() => handleFinishLoading(setLoadingComplete)}
-      />
-    );
-  } else {
+      <ScrollView>
+        {
+          this.state.repos.map((repo, i) => {
+            return (
+              <View key={i}>
+                <Text>{i}, {JSON.stringify(repo.full_name)}</Text>
+              </View>
+            )
+          })
+        }
+      </ScrollView>
+    )
+  }
+
+  render() {
     return (
       <View style={styles.container}>
-        {Platform.OS === 'ios' && <StatusBar barStyle="default" />}
-        <AppNavigator />
+        <Text style={styles.label}>GitHub Username</Text>
+        <TextInput
+          placeholder="Enter your github username"
+          style={styles.input}
+          onChange={this._handleChange}
+        />
+        <TouchableOpacity
+          style={styles.button}
+          activeOpacity={0.8}
+          onPress={this._handleSubmit}
+          >
+          <Text style={styles.buttonText}>VIEW</Text>
+        </TouchableOpacity>
+        { this._renderRepos() }
       </View>
     );
   }
 }
 
-async function loadResourcesAsync() {
-  await Promise.all([
-    Asset.loadAsync([
-      require('./assets/images/robot-dev.png'),
-      require('./assets/images/robot-prod.png'),
-    ]),
-    Font.loadAsync({
-      // This is the font that we are using for our tab bar
-      ...Ionicons.font,
-      // We include SpaceMono because we use it in HomeScreen.js. Feel free to
-      // remove this if you are not using it in your app
-      'space-mono': require('./assets/fonts/SpaceMono-Regular.ttf'),
-    }),
-  ]);
-}
-
-function handleLoadingError(error) {
-  // In this case, you might want to report the error to your error reporting
-  // service, for example Sentry
-  console.warn(error);
-}
-
-function handleFinishLoading(setLoadingComplete) {
-  setLoadingComplete(true);
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    padding: 10,
+    backgroundColor: '#FFFFFF',
   },
+  label: {
+    fontSize: 16,
+    marginBottom: 6,
+  },
+  input: {
+    width: screenWidth - 20,
+    height: 38,
+    padding: 4,
+    fontSize: 16,
+    borderColor: '#3a3a3a',
+    borderWidth: 1,
+    borderRadius: 8,
+  },
+  button: {
+    height: 45,
+    flexDirection: 'row',
+    backgroundColor:'#263238',
+    borderColor: '#263238',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 10,
+    marginTop: 10,
+    alignSelf: 'stretch',
+    justifyContent: 'center'
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    alignSelf: 'center',
+  }
 });
